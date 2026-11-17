@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;
+}
+
+.font-khmer-m1 {
+  font-family: 'Khmer M1', 'Khmer OS Muol Light', 'Moul', serif;
+}
+
+.font-khmer-siemreap {
+  font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .a4-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 12mm 14mm 8mm 17mm !important;
+  }
+}

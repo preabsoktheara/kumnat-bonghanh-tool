@@ -52,10 +52,10 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   app.post('/api/analyze', async (req: Request, res: Response) => {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY)?.trim();
     if (!apiKey) {
       res.status(500).json({
-        error: 'មិនទាន់មាន GEMINI_API_KEY នៅលើ Server ទេ។ សូមកំណត់នៅក្នុង Settings > Secrets។',
+        error: 'មិនទាន់មាន GEMINI_API_KEY ឬ VITE_GEMINI_API_KEY នៅលើ Server ទេ។ សូមកំណត់នៅក្នុង Settings > Secrets។',
       });
       return;
     }
@@ -150,19 +150,26 @@ async function startServer() {
     }
   });
 
-  if (process.env.NODE_ENV === 'production') {
+  let useVite = process.env.NODE_ENV !== 'production';
+  if (useVite) {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true, hmr: false },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch {
+      useVite = false;
+    }
+  }
+
+  if (!useVite) {
     const distDir = path.resolve(__dirname, 'dist');
     app.use(express.static(distDir));
     app.use((_req: Request, res: Response) => {
       res.sendFile(path.join(distDir, 'index.html'));
     });
-  } else {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
   }
 
   app.listen(port, '0.0.0.0', () => {

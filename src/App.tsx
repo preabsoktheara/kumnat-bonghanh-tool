@@ -131,9 +131,23 @@ export default function App() {
         }),
       });
 
-      const payload = await response.json();
+      const rawResponse = await response.text();
+      let payload: Partial<KumnatData> & { error?: string } = {};
+      if (rawResponse) {
+        try {
+          payload = JSON.parse(rawResponse) as Partial<KumnatData> & { error?: string };
+        } catch {
+          if (response.status === 413) {
+            throw new Error('ឯកសារមានទំហំធំពេក! សូមបង្រួមទំហំឯកសារ (ក្រោម 4MB) ឬបិទភ្ជាប់អត្ថបទជំនួស។');
+          }
+          throw new Error(
+            `ម៉ាស៊ីនមេបានឆ្លើយតបទម្រង់មិនត្រឹមត្រូវ (HTTP ${response.status}): ${rawResponse.slice(0, 120)}`
+          );
+        }
+      }
+
       if (!response.ok) {
-        throw new Error(payload?.error || 'មានបញ្ហាក្នុងការវិភាគឯកសារ។ សូមព្យាយាមម្តងទៀត។');
+        throw new Error(payload?.error || `មានបញ្ហាក្នុងការវិភាគឯកសារ (HTTP ${response.status})។`);
       }
 
       setData(payload as KumnatData);

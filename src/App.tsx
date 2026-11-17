@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { GoogleGenAI, Type } from '@google/genai';
 import {
   Document,
   Packer,
@@ -25,7 +24,6 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
-  KeyRound,
 } from 'lucide-react';
 
 interface KumnatData {
@@ -39,34 +37,6 @@ interface KumnatData {
   gregorianDate: string;
   aiAnalysisNote: string;
 }
-
-const SYSTEM_INSTRUCTION = `អ្នកគឺជាមន្ត្រីជំនាញរដ្ឋបាលនៃ ការិយាល័យរដ្ឋបាល សេនាធិការដ្ឋាន ស្នងការដ្ឋាននគរបាលខេត្តព្រះសីហនុ។
-ភារកិច្ចរបស់អ្នកគឺវិភាគឯកសារចូលគ្រប់ប្រភេទ (ដីកាតុលាការ លិខិតរដ្ឋបាលក្រសួង/អគ្គស្នងការដ្ឋាន លិខិតអញ្ជើញ លិខិតបញ្ជាបេសកកម្ម សេចក្តីជូនដំណឹង របាយការណ៍ ឬពាក្យបណ្តឹងប្រជាពលរដ្ឋ) ហើយសង្ខេបជា «កំណត់បង្ហាញ» តាមក្បួនរដ្ឋបាលខាងក្រោម៖
-
-១. យោងលិខិត (referenceText)៖
-- ប្រសិនបើឯកសារមានលិខិតបញ្ជូន ឬកំណត់បង្ហាញបញ្ជូនបន្តនៅទំព័រមុខ ត្រូវយកប្រភេទលិខិត លេខ និងកាលបរិច្ឆេទនៃលិខិតមុខនោះ។
-- ច្បាប់ហាមដាក់ (គ្មានលេខ)៖ ប្រសិនបើលិខិតដើមមិនមានលេខ ត្រូវសរសេរត្រឹមតែប្រភេទលិខិត និងថ្ងៃខែឆ្នាំប៉ុណ្ណោះ (ឧ. "លិខិតចុះថ្ងៃទី១០ ខែវិច្ឆិកា ឆ្នាំ២០២៦។" ឬ "ពាក្យបណ្តឹង ចុះថ្ងៃទី១០ ខែកញ្ញា ឆ្នាំ២០២៦") ហាមដាច់ខាតកុំសរសេរពាក្យ "(គ្មានលេខ)"។
-
-២. របស់ស្ថាប័ន ឬ របស់ឈ្មោះ (senderLabel & senderText)៖
-- បើជាលិខិតពីស្ថាប័នរដ្ឋ អង្គការ ឬតុលាការ៖ senderLabel = "របស់ស្ថាប័ន" និង senderText = ឈ្មោះស្ថាប័ន (ឧ. "អយ្យការអមសាលាដំបូងខេត្តព្រះសីហនុ។")។
-- បើជាពាក្យបណ្តឹង ឬពាក្យស្នើសុំរបស់បុគ្គលឯកជន៖ senderLabel = "របស់ឈ្មោះ" និង senderText = ឈ្មោះ ភេទ ឆ្នាំកំណើត ជនជាតិ និងទីលំនៅបច្ចុប្បន្ន។
-
-៣. សង្ខេបខ្លឹមសារ (summaryText)៖
-- សង្ខេបឱ្យខ្លី ខ្លឹម និងចំគោលបំណងស្នូល (កម្មវត្ថុ ភាគីពាក់ព័ន្ធ ទីតាំង កាលបរិច្ឆេទ/ម៉ោង និងកាលកំណត់ឆ្លើយតបបើមាន) ដោយកាត់ចោលសំអាងហេតុវែងឆ្ងាយ។
-- ករណីមានឈ្មោះមនុស្សពាក់ព័ន្ធចាប់ពី ២ នាក់ឡើងទៅ (ដូចជាដីកាកោះ ឬដីកាបង្គាប់ឱ្យចូលខ្លួន) ត្រូវរាយឈ្មោះចុះក្រោមតាមទម្រង់៖
-  [ប្រភេទដីកា/លិខិត]លើឈ្មោះដូចខាងក្រោម៖
-  -ឈ្មោះ [ឈ្មោះទី១] ...
-  -និងឈ្មោះ [ឈ្មោះចុងក្រោយ] ...
-  ឱ្យចូលទៅកាន់ [ទីតាំង] នៅថ្ងៃទី[...] ខែ[...] ឆ្នាំ[...] វេលាម៉ោង[...] ដើម្បី[គោលបំណង]។
-- បើមានកាលកំណត់ឆ្លើយតប ត្រូវដាក់បន្ទាត់ថ្មីផ្តើមដោយសញ្ញាត្រេ "-" (ឧ. "-សូមឆ្លើយតបយ៉ាងយូររយៈពេល ៧ថ្ងៃ ក្រោយពីទទួលបានឯកសារ។")។
-
-៤. មតិការិយាល័យ (officeOpinionBold & officeOpinionSuffix)៖
-- រចនាសម្ព័ន្ធស្នងការដ្ឋាននគរបាលខេត្តព្រះសីហនុ មាន ផែនការងារជំនាញទាំង១២ និង អធិការដ្ឋាននគរបាលក្រុង-ស្រុកទាំង៦។
-- វិភាគខ្លឹមសាររួចជ្រើសរើសផែនការងារជំនាញដែលត្រូវទទួលបន្ទុក (ដូចជា លោកស្នងការរង ផែនការងារព្រហ្មទណ្ឌ, ផែនការងារសន្តិសុខ, ផែនការងារអន្តោប្រវេសន៍, ផែនការងារសណ្តាប់ធ្នាប់, ផែនការងារអត្តសញ្ញាណកម្ម, ផែនការងារធនធានមនុស្ស, ផែនការងារភស្តុភារ និងហិរញ្ញវត្ថុ, ផែនការងារប្រឆាំងបទល្មើសគ្រឿងញៀន, ផែនការងារប្រឆាំងការជួញដូរមនុស្ស និងការពារអនីតិជន, ផែនការងារនគរបាលបង្ការពន្លត់អគ្គិភ័យ និងសង្គ្រោះ ឬ លោក លោកស្រីស្នងការរង ផែនការងារជំនាញទាំង១២ និងលោកអធិការនគរបាលក្រុង-ស្រុកទាំង៦)។
-- officeOpinionBold ត្រូវដាក់តួនាទីស្នងការរង និងឃ្លាបញ្ចប់ក្នុងសញ្ញាអញ្ញប្រកាស ឧ. "លោកស្នងការរង ផែនការងារព្រហ្មទណ្ឌ “ដើម្បីជាសមត្ថកិច្ច”" ឬ "“ដើម្បីមុខការ”"។
-
-៥. កាលបរិច្ឆេទ (lunarDate & gregorianDate)៖
-- ប្រើកាលបរិច្ឆេទបច្ចុប្បន្ន ឬកាលបរិច្ឆេទសមស្របតាមឯកសារ ដោយឱ្យថ្ងៃចន្ទគតិខ្មែរ (ព.ស.) ត្រូវគ្នាជាមួយថ្ងៃសុរិយគតិ (ខេត្តព្រះសីហនុ ថ្ងៃទី... ខែ... ឆ្នាំ...)។`;
 
 const VIP_REGEX = /(ឯកឧត្តម[^\s,។]+(?:\s+[^\s,។]+){1,7}|សម្តេច[^\s,។]+(?:\s+[^\s,។]+){1,7}|លោកជំទាវ[^\s,។]+(?:\s+[^\s,។]+){1,6})/g;
 
@@ -99,10 +69,6 @@ function buildKhmerRuns(text: string, defaultFont = 'Khmer OS Siemreap', default
 }
 
 export default function App() {
-  const [apiKey, setApiKey] = useState<string>(
-    () => import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || ''
-  );
-  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
   const [file, setFile] = useState<File | null>(null);
   const [rawText, setRawText] = useState<string>('');
   const [customInstruction, setCustomInstruction] = useState<string>('');
@@ -123,11 +89,6 @@ export default function App() {
     aiAnalysisNote: 'រួចរាល់សម្រាប់បញ្ចូលឯកសារថ្មីដើម្បីវិភាគដោយ AI។',
   });
 
-  const handleSaveKey = (val: string) => {
-    setApiKey(val);
-    localStorage.setItem('gemini_api_key', val);
-  };
-
   const fileToBase64 = (f: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -140,12 +101,6 @@ export default function App() {
     });
 
   const handleAnalyze = async () => {
-    const activeKey = apiKey.trim();
-    if (!activeKey) {
-      setError('សូមបញ្ចូល Gemini API Key ជាមុនសិន!');
-      setShowKeyInput(true);
-      return;
-    }
     if (!file && !rawText.trim()) {
       setError('សូមជ្រើសរើសឯកសារ PDF/រូបភាព ឬបញ្ចូលអត្ថបទឯកសារជាមុនសិន!');
       return;
@@ -155,74 +110,40 @@ export default function App() {
     setError('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: activeKey });
-      const contents: any[] = [];
-
+      let fileData: { data: string; mimeType: string } | undefined;
       if (file) {
         const b64 = await fileToBase64(file);
-        contents.push({
-          inlineData: {
-            data: b64,
-            mimeType: file.type || 'application/pdf',
-          },
-        });
+        fileData = {
+          data: b64,
+          mimeType: file.type || 'application/pdf',
+        };
       }
 
       const todayStr = new Date().toLocaleDateString('en-CA');
-      let promptText = `សូមវិភាគឯកសារនេះ និងបង្កើតទិន្នន័យសម្រាប់ «កំណត់បង្ហាញ» តាមក្បួនរដ្ឋបាល។ ថ្ងៃបច្ចុប្បន្នគឺ ${todayStr}។`;
-      if (rawText.trim()) {
-        promptText += `
-
-អត្ថបទឯកសារបន្ថែម៖
-${rawText.trim()}`;
-      }
-      if (customInstruction.trim()) {
-        promptText += `
-
-ការណែនាំពិសេសពីមន្ត្រី៖
-${customInstruction.trim()}`;
-      }
-      contents.push(promptText);
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              referenceText: { type: Type.STRING },
-              senderLabel: { type: Type.STRING, enum: ['របស់ស្ថាប័ន', 'របស់ឈ្មោះ'] },
-              senderText: { type: Type.STRING },
-              summaryText: { type: Type.STRING },
-              officeOpinionBold: { type: Type.STRING },
-              officeOpinionSuffix: { type: Type.STRING },
-              lunarDate: { type: Type.STRING },
-              gregorianDate: { type: Type.STRING },
-              aiAnalysisNote: { type: Type.STRING },
-            },
-            required: [
-              'referenceText',
-              'senderLabel',
-              'senderText',
-              'summaryText',
-              'officeOpinionBold',
-              'officeOpinionSuffix',
-              'lunarDate',
-              'gregorianDate',
-              'aiAnalysisNote',
-            ],
-          },
-        },
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          rawText: rawText.trim(),
+          customInstruction: customInstruction.trim(),
+          todayStr,
+        }),
       });
 
-      const parsed = JSON.parse(response.text || '{}') as KumnatData;
-      setData(parsed);
-    } catch (err: any) {
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || 'មានបញ្ហាក្នុងការវិភាគឯកសារ។ សូមព្យាយាមម្តងទៀត។');
+      }
+
+      setData(payload as KumnatData);
+    } catch (err: unknown) {
       console.error(err);
-      setError(err?.message || 'មានបញ្ហាក្នុងការវិភាគឯកសារ។ សូមពិនិត្យ API Key ឬឯកសារម្តងទៀត។');
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'មានបញ្ហាក្នុងការវិភាគឯកសារ។ សូមពិនិត្យឯកសារម្តងទៀត។';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -257,8 +178,7 @@ ${customInstruction.trim()}`;
       });
 
     // Build summary lines properly with tab indents on multi-line lists
-    const summaryLines = data.summaryText.split('
-');
+    const summaryLines = data.summaryText.split('\n');
     const summaryRuns: TextRun[] = [];
     summaryLines.forEach((line, idx) => {
       const cleanLine = line.trim();
@@ -433,8 +353,7 @@ ${customInstruction.trim()}`;
                   spacing: { after: 60 },
                   children: [
                     new TextRun({
-                      text: 'គោរពជូន : ឯកឧត្តម ឧត្តមសេនីយ៍ឯក អគ្គស្នងការរង
-               និងជាស្នងការនគរបាលខេត្តព្រះសីហនុ',
+                      text: 'គោរពជូន : ឯកឧត្តម ឧត្តមសេនីយ៍ឯក អគ្គស្នងការរង\n               និងជាស្នងការនគរបាលខេត្តព្រះសីហនុ',
                       size: 21,
                       font: {
                         name: 'Khmer OS Siemreap',
@@ -606,13 +525,6 @@ ${customInstruction.trim()}`;
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              className="flex items-center gap-1.5 text-xs bg-blue-900 hover:bg-blue-800 border border-blue-700 px-3 py-2 rounded-lg transition"
-            >
-              <KeyRound className="w-4 h-4 text-amber-300" />
-              <span>{apiKey ? 'API Key រួចរាល់' : 'កំណត់ API Key'}</span>
-            </button>
-            <button
               onClick={() => window.print()}
               className="flex items-center gap-1.5 text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg transition"
             >
@@ -628,24 +540,6 @@ ${customInstruction.trim()}`;
             </button>
           </div>
         </div>
-
-        {showKeyInput && (
-          <div className="bg-blue-900/90 border-t border-blue-800 px-4 py-3">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-2">
-              <span className="text-xs text-blue-200 whitespace-nowrap">Gemini API Key:</span>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => handleSaveKey(e.target.value)}
-                placeholder="បិទភ្ជាប់ Gemini API Key នៅទីនេះ..."
-                className="w-full sm:w-96 text-xs bg-blue-950 border border-blue-700 rounded px-3 py-1.5 text-white"
-              />
-              <span className="text-[11px] text-blue-300">
-                (ប្រសិនបើបានដាក់ VITE_GEMINI_API_KEY ក្នុង Vercel ហើយ មិនបាច់បញ្ចូលម្តងទៀតទេ)
-              </span>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* Main Split Workspace */}
